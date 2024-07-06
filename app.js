@@ -121,7 +121,6 @@ const renderIndexPage = (blogs) => {
     let blogList = blogs.map((blog, index) => `
         <div class="card" onclick="window.location.href='/blog/${index}'">
             <h2>${blog.title}</h2>
-            // <p>${blog.content.substring(0, 100)}...</p>
             <p><strong>Likes:</strong> ${blog.likes}</p>
         </div>
     `).join('');
