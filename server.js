@@ -82,11 +82,15 @@ const renderIndexPage = (blogs) => {
             <style>
                 body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f0f8ff; }
                 header { background-color: #008080; color: white; padding: 10px 0; text-align: center; }
-                section { padding: 20px; margin: 20px; }
+                section { padding: 10px; margin: 0 auto; max-width: 800px; }
                 footer { background-color: #008080; color: white; text-align: center; padding: 10px 0; position: fixed; bottom: 0; width: 100%; }
-                .card { background-color: white; margin: 10px; padding: 10px; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); cursor: pointer; }
+                .card { background-color: white; margin: 10px 0; padding: 10px; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); cursor: pointer; }
                 .card h2 { margin: 0; }
                 .card p { color: gray; }
+                @media (max-width: 600px) {
+                    section { padding: 10px; margin: 10px; }
+                    .card { margin: 10px 0; }
+                }
             </style>
         </head>
         <body>
@@ -116,8 +120,11 @@ const renderBlogPage = (blog) => {
             <style>
                 body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f0f8ff; }
                 header { background-color: #008080; color: white; padding: 10px 0; text-align: center; }
-                section { padding: 20px; margin: 20px; }
-                footer { background-color: #008080; color: white; text-align: center; padding: 10px 0; position: fixed; bottom: 0; width: 100%; }
+                section { padding: 20px; margin: 20px; word-wrap: break-word; max-width: 800px; margin: 0 auto; }
+                footer { background-color: #008080; color: white; text-align: center; padding: 10px 0; position: static; width: 100%; }
+                @media (max-width: 600px) {
+                    section { padding: 10px; margin: 10px; }
+                }
             </style>
         </head>
         <body>
