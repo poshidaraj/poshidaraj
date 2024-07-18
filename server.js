@@ -105,7 +105,7 @@ const renderIndexPage = (blogs) => {
         <div class="card" onclick="window.location.href='/blog/${index}'">
             <h2>${blog.title}</h2>
             <div>${blog.content.substring(0, 100)}...</div>
-            <p><strong>Likes:</strong> ${blog.likes}</p>
+   
         </div>
     `).join('');
     return `
