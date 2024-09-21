@@ -243,22 +243,24 @@ app.get('/create-admin', (req, res) => {
     res.render('create-admin'); // Render create-admin.ejs
 });
 
-app.post('/create-admin', (req, res) => {
-    const { name, mobile, email, password } = req.body;
-    const adminDataPath = './data/owner.json';
+// Admin creation route
+app.post('/admin/create-admin', (req, res) => {
+    const admins = readJsonFile('./data/admin.json');
+    
+    // Create a new admin object based on the form data (you can add validation here)
+    const newAdmin = {
+        email: req.body.email,
+        password: req.body.password
+    };
 
-    fs.readFile(adminDataPath, 'utf-8', (err, data) => {
-        if (err) return res.status(500).send('Error reading admin data');
-        
-        let admins = JSON.parse(data || '[]');
+    // Add the new admin to the list
+    admins.push(newAdmin);
+    
+    // Write the updated admin list to the JSON file
+    writeJsonFile('./data/admin.json', admins);
 
-        admins.push({ name, mobile, email, password }); // Save admin data
-        
-        fs.writeFile(adminDataPath, JSON.stringify(admins), (err) => {
-            if (err) return res.status(500).send('Error saving admin data');
-            res.redirect('/login'); // Redirect to login
-        });
-    });
+    // Redirect to the admin dashboard or login page after creation
+    res.redirect('/admin/dashboard');
 });
 
 // Other admin routes remain the same...
