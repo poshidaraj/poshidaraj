@@ -1,0 +1,13 @@
+<nav class="bg-blue-600 p-4 shadow-lg">
+    <div class="container mx-auto flex justify-between items-center">
+        <a href="/" class="text-white text-lg font-bold transition-colors duration-300 hover:text-blue-200">Poshidaraj</a>
+        <div>
+            <% if (user) { %>
+                <a href="/logout" class="text-white hover:underline transition-colors duration-300 hover:text-blue-200">Logout</a>
+            <% } else { %>
+                <a href="/login" class="text-white hover:underline transition-colors duration-300 hover:text-blue-200">Login</a>
+                <a href="/registration" class="text-white hover:underline transition-colors duration-300 hover:text-blue-200 ml-1">Register</a>
+            <% } %>
+        </div>
+    </div>
+</nav>

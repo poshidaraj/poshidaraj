@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="bg-zinc-100">
+    <%- include('partials/header') %>
+    <main class="container mx-auto p-6">
+        <h2 class="text-3xl font-bold mb-4 text-gray-900">Dashboard</h2>
+        <a href="/admin/create" class="bg-blue-600 text-white rounded-lg px-4 py-2 mb-6 inline-block hover:bg-blue-700 transition-colors duration-300">Create Post</a>
+        
+        <h3 class="text-2xl font-semibold mb-4 text-gray-800">Posts</h3>
+        <div id="postList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <% posts.forEach(function(post, index) { %>
+                <div class="bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-300">
+                    <h4 class="text-xl font-semibold text-gray-900 mb-2"><%= post.title %></h4>
+                    <div class="flex justify-between">
+                        <a href="/admin/edit/<%= index %>" class="text-blue-600 hover:underline transition-colors duration-300">Edit</a>
+                        <form action="/admin/delete/<%= index %>" method="POST">
+                            <button type="submit" class="text-red-600 hover:text-red-800 transition-colors duration-300">Delete</button>
+                        </form>
+                    </div>
+                </div>
+            <% }); %>
+        </div>
+    </main>
+    <%- include('partials/footer') %>
+</body>
+</html>
