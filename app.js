@@ -76,8 +76,7 @@ app.post('/login', async (req, res) => {
     res.redirect('/login');
 });
 
-// Logout route
-app.post('/logout', (req, res) => {
+app.get('/logout', (req, res) => {
     res.clearCookie('token');
     res.redirect('/');
 });
@@ -203,6 +202,52 @@ app.post('/admin/create', (req, res) => {
     res.redirect('/admin/dashboard');
 });
 
+
+// Login Route
+app.get('/arshad', (req, res) => {
+    res.render('ownerLogin'); // Render login.ejs
+});
+
+app.post('/arshad', (req, res) => {
+    const { mobile, password } = req.body;
+    const ownerDataPath = './data/owner.json';
+
+    fs.readFile(ownerDataPath, 'utf-8', (err, data) => {
+        if (err) return res.status(500).send('Error reading owner data');
+        const owners = JSON.parse(data || '[]');
+        const owner = owners.find(o => o.mobile === mobile && o.password === password);
+
+        if (owner) {
+            // Grant access logic (e.g., set session or JWT token)
+            res.send('Access granted!'); // Or redirect to a protected route
+        } else {
+            res.status(401).send('Invalid mobile number or password.'); // Handle error
+        }
+    });
+});
+
+// Create Admin Route
+app.get('/create-admin', (req, res) => {
+    res.render('create-admin'); // Render create-admin.ejs
+});
+
+app.post('/create-admin', (req, res) => {
+    const { name, mobile, email, password } = req.body;
+    const adminDataPath = './data/owner.json';
+
+    fs.readFile(adminDataPath, 'utf-8', (err, data) => {
+        if (err) return res.status(500).send('Error reading admin data');
+        
+        let admins = JSON.parse(data || '[]');
+
+        admins.push({ name, mobile, email, password }); // Save admin data
+        
+        fs.writeFile(adminDataPath, JSON.stringify(admins), (err) => {
+            if (err) return res.status(500).send('Error saving admin data');
+            res.redirect('/login'); // Redirect to login
+        });
+    });
+});
 
 // Other admin routes remain the same...
 
