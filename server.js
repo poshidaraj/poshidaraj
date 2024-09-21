@@ -39,6 +39,18 @@ const authenticateJWT = (req, res, next) => {
 
 app.use(authenticateJWT);
 
+// Middleware to check if the user is logged in as an admin
+const ensureAdmin = (req, res, next) => {
+    if (req.session && req.session.admin) {
+        // If admin is logged in, proceed to the next middleware or route handler
+        return next();
+    } else {
+        // If admin is not logged in, redirect to the admin login page
+        return res.redirect('/admin');
+    }
+};
+
+
 const readJsonFile = (filePath) => {
     return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
 };
@@ -131,7 +143,7 @@ app.get('/admin', (req, res) => {
     res.render('admin', { user: req.user });
 });
 
-app.get('/admin/dashboard', (req, res) => {
+app.get('/admin/dashboard',ensureAdmin, (req, res) => {
     // Ensure you have an authentication check if needed
     const posts = readJsonFile('./data/posts.json');
     res.render('dashboard', { posts, user: req.user });
