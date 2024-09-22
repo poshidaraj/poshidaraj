@@ -242,6 +242,21 @@ app.get('/owner/logout', (req, res) => {
     res.redirect('/owner');
 });
 
+// GET route for individual posts
+app.get('/post/:id', (req, res) => {
+    const postId = req.params.id; // Get the post ID from the URL
+    const posts = readJsonFile('./data/posts.json'); // Read posts data
+
+    // Ensure the postId is a valid number
+    if (postId >= 0 && postId < posts.length) {
+        const post = posts[postId]; // Get the post based on ID
+        res.render('post', { post, user: req.user }); // Render the post view
+    } else {
+        res.status(404).send('Post not found'); // Handle invalid post ID
+    }
+});
+
+
 // Server start
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
