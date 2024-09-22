@@ -51,6 +51,16 @@ const authenticateJWT = (req, res, next) => {
 
 app.use(authenticateJWT);
 
+// Middleware to check if the user is logged in
+const ensureUser = (req, res, next) => {
+    if (req.user) {
+        next(); // User is logged in, proceed to the next middleware/route handler
+    } else {
+        res.redirect('/login'); // User is not logged in, redirect to login page
+    }
+};
+
+
 // Middleware to check if the user is logged in as an admin
 const ensureAdmin = (req, res, next) => {
     if (req.session && req.session.adminEmail) {
@@ -243,7 +253,7 @@ app.get('/owner/logout', (req, res) => {
 });
 
 // GET route for individual posts
-app.get('/post/:id', (req, res) => {
+app.get('/post/:id',ensureUser, (req, res) => {
     const postId = req.params.id; // Get the post ID from the URL
     const posts = readJsonFile('./data/posts.json'); // Read posts data
 
