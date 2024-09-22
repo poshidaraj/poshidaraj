@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import cookieParser from 'cookie-parser';
+import session from 'express-session';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,19 +21,30 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use(cookieParser());
 
-// Middleware to check for user authentication
+// Session middleware configuration
+app.use(session({
+    secret: 'yourSecretKey', // Change to a strong secret key
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false } // Set secure to true in production with HTTPS
+}));
+
+// Middleware to check for user authentication and pass 'user' to all views
 const authenticateJWT = (req, res, next) => {
     const token = req.cookies.token;
     if (token) {
         jwt.verify(token, JWT_SECRET, (err, user) => {
             if (err) {
-                return res.sendStatus(403);
+                req.user = null;
+            } else {
+                req.user = user;
             }
-            req.user = user;
+            res.locals.user = req.user; // Pass 'user' to all routes and views
             next();
         });
     } else {
         req.user = null;
+        res.locals.user = null; // Ensure 'user' is passed as null if not logged in
         next();
     }
 };
@@ -41,15 +53,21 @@ app.use(authenticateJWT);
 
 // Middleware to check if the user is logged in as an admin
 const ensureAdmin = (req, res, next) => {
-    if (req.session && req.session.admin) {
-        // If admin is logged in, proceed to the next middleware or route handler
+    if (req.session && req.session.adminEmail) {
         return next();
     } else {
-        // If admin is not logged in, redirect to the admin login page
         return res.redirect('/admin');
     }
 };
 
+// Middleware to ensure only the owner can access certain routes
+const ensureOwner = (req, res, next) => {
+    if (req.session && req.session.ownerLoggedIn) {
+        return next();
+    } else {
+        return res.redirect('/owner');
+    }
+};
 
 const readJsonFile = (filePath) => {
     return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
@@ -59,9 +77,16 @@ const writeJsonFile = (filePath, data) => {
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 };
 
+// Root route to handle GET /
+app.get('/', (req, res) => {
+    const posts = readJsonFile('./data/posts.json'); // Assuming posts are being displayed on the home page
+    res.render('index', { posts });
+});
+
+
 // Registration route
 app.get('/registration', (req, res) => {
-    res.render('registration', { user: req.user });
+    res.render('registration');
 });
 
 app.post('/register', async (req, res) => {
@@ -74,7 +99,7 @@ app.post('/register', async (req, res) => {
 
 // Login route
 app.get('/login', (req, res) => {
-    res.render('login', { user: req.user });
+    res.render('login');
 });
 
 app.post('/login', async (req, res) => {
@@ -93,134 +118,88 @@ app.get('/logout', (req, res) => {
     res.redirect('/');
 });
 
-// Post route
-app.get('/post/:id', (req, res) => {
-    if (!req.user) {
-        return res.status(403).send('You need to log in to access this post.');
-    }
-
-    const postId = req.params.id;
-    const postsPath = path.join(__dirname, 'data', 'posts.json');
-
-    fs.readFile(postsPath, 'utf8', (err, data) => {
-        if (err) {
-            return res.status(500).send('Error reading posts');
-        }
-
-        const posts = JSON.parse(data);
-        const post = posts[postId]; // assuming posts is an array
-
-        if (!post) {
-            return res.status(404).send('Post not found');
-        }
-
-        res.render('post', { post, user: req.user });
-    });
+// Admin login route
+app.get('/admin', (req, res) => {
+    res.render('admin');
 });
 
-// Index route
-app.get('/', (req, res) => {
-    const yourPostsArray = readJsonFile('./data/posts.json');
-    res.render('index', { posts: yourPostsArray, user: req.user });
-});
-
-app.post('/admin/login', (req, res) => {
+app.post('/admin', (req, res) => {
     const admins = readJsonFile('./data/admin.json');
-    const admin = admins.find(a => a.email === req.body.email && a.password === req.body.password);
+    const { email, password } = req.body;
 
+    const admin = admins.find(a => a.email === email && a.password === password);
     if (admin) {
-        // Redirect to dashboard if admin login is successful
+        req.session.adminEmail = admin.email;
         res.redirect('/admin/dashboard');
     } else {
-        // Redirect back to admin login page if credentials are incorrect
-        res.redirect('/admin');
+        res.render('admin', { error: 'Invalid email or password' });
     }
 });
 
-
-// Admin routes
-app.get('/admin', (req, res) => {
-    res.render('admin', { user: req.user });
-});
-
-app.get('/admin/dashboard',ensureAdmin, (req, res) => {
-    // Ensure you have an authentication check if needed
+// Admin dashboard
+app.get('/admin/dashboard', ensureAdmin, (req, res) => {
     const posts = readJsonFile('./data/posts.json');
-    res.render('dashboard', { posts, user: req.user });
+    res.render('dashboard', { posts });
 });
 
-app.post('/admin/delete/:id', (req, res) => {
+// Admin delete post route
+app.post('/admin/delete/:id', ensureAdmin, (req, res) => {
     const posts = readJsonFile('./data/posts.json');
     const postId = req.params.id;
 
     if (postId >= 0 && postId < posts.length) {
-        posts.splice(postId, 1); // Post ko remove karte hain
+        posts.splice(postId, 1);
         writeJsonFile('./data/posts.json', posts);
-        res.redirect('/admin/dashboard'); // Redirect to dashboard
+        res.redirect('/admin/dashboard');
     } else {
         res.status(404).send('Post not found');
     }
 });
 
-// GET route for edit form
-app.get('/admin/edit/:id', (req, res) => {
+// Admin create post route
+app.get('/admin/create', ensureAdmin, (req, res) => {
+    res.render('create');
+});
+
+app.post('/admin/create', ensureAdmin, (req, res) => {
+    const posts = readJsonFile('./data/posts.json');
+    posts.push({ title: req.body.title, content: req.body.content });
+    writeJsonFile('./data/posts.json', posts);
+    res.redirect('/admin/dashboard');
+});
+
+// Admin edit post route
+app.get('/admin/edit/:id', ensureAdmin, (req, res) => {
     const posts = readJsonFile('./data/posts.json');
     const postId = req.params.id;
 
     if (postId >= 0 && postId < posts.length) {
         const post = posts[postId];
-        res.render('edit', { post, postId }); // Render edit form with post data
+        res.render('edit', { post, postId });
     } else {
         res.status(404).send('Post not found');
     }
 });
 
-app.post('/admin/edit/:id', (req, res) => {
+app.post('/admin/edit/:id', ensureAdmin, (req, res) => {
     const posts = readJsonFile('./data/posts.json');
     const postId = req.params.id;
 
     if (postId >= 0 && postId < posts.length) {
-        posts[postId] = { 
-            title: req.body.title, 
-            content: req.body.content 
-        };
+        posts[postId] = { title: req.body.title, content: req.body.content };
         writeJsonFile('./data/posts.json', posts);
-        res.redirect('/admin/dashboard'); // Redirect back to admin dashboard
+        res.redirect('/admin/dashboard');
     } else {
         res.status(404).send('Post not found');
     }
 });
 
-// GET route for creating a new post
-app.get('/admin/create', (req, res) => {
-    res.render('create'); // Render a create.ejs form
+// Owner login route
+app.get('/owner', (req, res) => {
+    res.render('ownerLogin'); // Ensure that ownerLogin.ejs exists
 });
 
-
-// POST route to handle the creation of a new post
-app.post('/admin/create', (req, res) => {
-    const posts = readJsonFile('./data/posts.json');
-    
-    // Push the new post data
-    posts.push({ 
-        title: req.body.title, 
-        content: req.body.content 
-    });
-    
-    // Save the updated posts array
-    writeJsonFile('./data/posts.json', posts);
-    
-    // Redirect to the admin dashboard after creating the post
-    res.redirect('/admin/dashboard');
-});
-
-
-// Login Route
-app.get('/arshad', (req, res) => {
-    res.render('ownerLogin'); // Render login.ejs
-});
-
-app.post('/arshad', (req, res) => {
+app.post('/owner', (req, res) => {
     const { mobile, password } = req.body;
     const ownerDataPath = './data/owner.json';
 
@@ -230,41 +209,40 @@ app.post('/arshad', (req, res) => {
         const owner = owners.find(o => o.mobile === mobile && o.password === password);
 
         if (owner) {
-            // Grant access logic (e.g., set session or JWT token)
-            res.send('Access granted!'); // Or redirect to a protected route
+            req.session.ownerLoggedIn = true; // Set session for owner
+            res.redirect('/create-admin');
         } else {
-            res.status(401).send('Invalid mobile number or password.'); // Handle error
+            res.status(401).send('Invalid mobile number or password.');
         }
     });
 });
 
-// Create Admin Route
-app.get('/create-admin', (req, res) => {
-    res.render('create-admin'); // Render create-admin.ejs
+
+
+// Use ensureOwner for creating admin route
+app.get('/create-admin', ensureOwner, (req, res) => {
+    res.render('create-admin', { user: req.user });
 });
 
-// Admin creation route
-app.post('/admin/create-admin', (req, res) => {
+app.post('/create-admin', ensureOwner, (req, res) => {
     const admins = readJsonFile('./data/admin.json');
-    
-    // Create a new admin object based on the form data (you can add validation here)
     const newAdmin = {
         email: req.body.email,
         password: req.body.password
     };
-
-    // Add the new admin to the list
     admins.push(newAdmin);
-    
-    // Write the updated admin list to the JSON file
     writeJsonFile('./data/admin.json', admins);
-
-    // Redirect to the admin dashboard or login page after creation
     res.redirect('/admin/dashboard');
 });
 
-// Other admin routes remain the same...
 
+// Owner logout route
+app.get('/owner/logout', (req, res) => {
+    req.session.ownerLoggedIn = false;
+    res.redirect('/owner');
+});
+
+// Server start
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
