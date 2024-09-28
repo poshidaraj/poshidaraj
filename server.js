@@ -13,8 +13,8 @@ const PORT = process.env.PORT || 3000;
 const JWT_SECRET = 'your_jwt_secret'; // Change this to a secure key in production
 
 // Get __dirname
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// const __filename = fileURLToPath(import.meta.url);
+// const __dirname = path.dirname(__filename);
 
 app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({ extended: true }));
